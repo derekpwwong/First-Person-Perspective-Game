@@ -1,5 +1,5 @@
 {
-  "name": "First Person Perspective",
+  "name": "FirstPersonPerspective",
   "version": "1.0.0",
   "description": "First person Perspective Game",
   "main": "game.js",
