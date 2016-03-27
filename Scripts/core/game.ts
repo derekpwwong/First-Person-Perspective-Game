@@ -19,6 +19,7 @@ import PhongMaterial = THREE.MeshPhongMaterial;
 import Material = THREE.Material;
 import Texture = THREE.Texture;
 import Line = THREE.Line;
+
 import Mesh = THREE.Mesh;
 import Object3D = THREE.Object3D;
 import SpotLight = THREE.SpotLight;
@@ -75,9 +76,14 @@ var game = (() => {
     var coinGeometry: Geometry;
     var coinMaterial: Physijs.Material;
 
-    var coins: Physijs.ConcaveMesh[];
+    var coins: Physijs.BoxMesh[];
     var cointCount: number = 10;
     
+    var boxGeometry: CubeGeometry;
+    var boxMaterial: Physijs.Material;
+    var box: Physijs.Mesh;
+    
+    var cubeGroup =  new THREE.Object3D();
     var deathPlaneGeometry: CubeGeometry;
     var deathPlaneMaterial: Physijs.Material;
     var deathPlane: Physijs.Mesh;
@@ -95,7 +101,6 @@ var game = (() => {
     var manifest = [
         { id: "land", src: "../../Assets/audio/Land.wav" },
         { id: "hit", src: "../../Assets/audio/hit.wav" },
-        { id: "coin", src: "../../Assets/audio/coin.mp3" },
         { id: "jump", src: "../../Assets/audio/Jump.wav" }
     ];
 
@@ -116,7 +121,7 @@ var game = (() => {
 
     function setupScoreboard(): void {
         // initialize  score and lives values
-        scoreValue = 0;
+        scoreValue = 100;
         livesValue = 5;
 
         // Add Lives Label
@@ -132,7 +137,7 @@ var game = (() => {
 
         // Add Score Label
         scoreLabel = new createjs.Text(
-            "SCORE: " + scoreValue,
+            "Health: " + scoreValue,
             "40px Consolas",
             "#ffffff"
         );
@@ -258,7 +263,8 @@ var game = (() => {
         console.log("Added Player to Scene");
 
         // Add custom coin imported from Blender
-        addCoinMesh();
+        //box to collide into
+        addBox();
 
         addDeathPlane();
 
@@ -268,12 +274,12 @@ var game = (() => {
                 isGrounded = true;
                 createjs.Sound.play("land");
             }
-            if (eventObject.name === "Coin") {
-                createjs.Sound.play("coin");
+            if (eventObject.name === "Box") { 
+                createjs.Sound.play("hit");
                 scene.remove(eventObject);
-                setCoinPosition(eventObject);
-                scoreValue += 100;
-                scoreLabel.text = "SCORE: " + scoreValue;
+                
+                scoreValue -= 10;
+                scoreLabel.text = "Health: " + scoreValue;
             }
             
             if(eventObject.name === "DeathPlane") {
@@ -346,39 +352,31 @@ var game = (() => {
         deathPlane.position.set(0, -10, 0);
         deathPlane.name = "DeathPlane";
         scene.add(deathPlane);
-}
+    }
+    function addBox():void {
+        // boxGeometry = new BoxGeometry(0.1,0.1,0.1);
+        // boxMaterial = Physijs.createMaterial(new MeshBasicMaterial({color: 0xff0000}), 0.4, 0.6);
     
-    // Add the Coin to the scene
-    function addCoinMesh(): void {
+        // box =  new Physijs.BoxMesh(boxGeometry, boxMaterial, 0);
+        // box.name = "Box";
+        // setBox(box);
+        for (var index = 0; index < 10; index++) {
+            boxGeometry = new BoxGeometry(0.5,0.5,0.5);
+            boxMaterial = Physijs.createMaterial(new MeshBasicMaterial({color: 0xff0000}), 0.4, 0.6);
         
-        coins = new Array<Physijs.ConvexMesh>(); // Instantiate a convex mesh array
-
-        var coinLoader = new THREE.JSONLoader().load("../../Assets/imported/coin.json", function(geometry: THREE.Geometry) {
-            var phongMaterial = new PhongMaterial({ color: 0xE7AB32 });
-            phongMaterial.emissive = new THREE.Color(0xE7AB32);
+            box =  new Physijs.BoxMesh(boxGeometry, boxMaterial, 0);
+            box.name = "Box";
             
-            var coinMaterial = Physijs.createMaterial((phongMaterial), 0.4, 0.6);
+            var randomPointX: number = Math.floor(Math.random() * 20) - 10;
+            var randomPointZ: number = Math.floor(Math.random() * 20) - 10;
+            box.position.set(randomPointX, 3, randomPointZ);
+            console.log('box #'+'x:'+randomPointX+'z'+randomPointZ+index);
+            scene.add(box);    
             
-            for(var count:number = 0; count < cointCount; count++) {
-                coins[count] = new Physijs.ConvexMesh(geometry, coinMaterial);     
-                coins[count].receiveShadow = true;
-                coins[count].castShadow = true;
-                coins[count].name = "Coin";
-                setCoinPosition(coins[count]);
-            }
-        });
-
-        console.log("Added Coin Mesh to Scene");
+        }
+        
     }
-
-    // Set Coin Position
-    function setCoinPosition(coin:Physijs.ConvexMesh): void {
-        var randomPointX: number = Math.floor(Math.random() * 20) - 10;
-        var randomPointZ: number = Math.floor(Math.random() * 20) - 10;
-        coin.position.set(randomPointX, 10, randomPointZ);
-        scene.add(coin);
-    }
-
+  
     //PointerLockChange Event Handler
     function pointerLockChange(event): void {
         if (document.pointerLockElement === element) {
@@ -413,7 +411,7 @@ var game = (() => {
         canvas.style.width = "100%";
         livesLabel.x = config.Screen.WIDTH * 0.1;
         livesLabel.y = (config.Screen.HEIGHT * 0.15) * 0.20;
-        scoreLabel.x = config.Screen.WIDTH * 0.8;
+        scoreLabel.x = config.Screen.WIDTH * 0.6;
         scoreLabel.y = (config.Screen.HEIGHT * 0.15) * 0.20;
         stage.update();
     }
@@ -432,10 +430,10 @@ var game = (() => {
     function gameLoop(): void {
         stats.update();
 
-        coins.forEach(coin => {
-            coin.setAngularFactor(new Vector3(0, 0, 0));
-            coin.setAngularVelocity(new Vector3(0, 1, 0));
-        });
+        // coins.forEach(coin => {
+        //     coin.setAngularFactor(new Vector3(0, 0, 0));
+        //     coin.setAngularVelocity(new Vector3(0, 1, 0));
+        // });
 
         checkControls();
         stage.update();
